@@ -5,7 +5,7 @@
   const app = $('app');
 
   // ───────────── settings ─────────────
-  const DEFAULTS = { h24: true, bg: 'art', dim: 'auto', offset: 0, unit: 'C', place: null };
+  const DEFAULTS = { h24: true, bg: 'art', dim: 'off', offset: 0, unit: 'C', place: null };
   const store = {
     get() { try { return JSON.parse(localStorage.getItem('glance') || '{}'); } catch { return {}; } },
     set(v) { try { localStorage.setItem('glance', JSON.stringify(v)); } catch {} },
@@ -341,6 +341,7 @@
   document.addEventListener('pointerdown', (e) => {
     touched(); keepAwake();
     if (sheet.classList.contains('open') && !sheet.contains(e.target) && e.target !== $('gear') && !$('gear').contains(e.target)) closeSheet();
+    if ($('search').classList.contains('open') && !$('search').contains(e.target) && !$('searchBtn').contains(e.target)) closeSearch();
   });
   const closeSheet = () => { sheet.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); };
   $('gear').addEventListener('click', () => { sheet.classList.toggle('open'); sheet.setAttribute('aria-hidden', String(!sheet.classList.contains('open'))); });
@@ -352,6 +353,8 @@
     });
     $('sourceBlock').hidden = !hasServer;
     $('spLogout').hidden = !(MODE === 'spotify' && spTokens());
+    $('searchBtn').hidden = !(MODE === 'spotify' && spTokens());
+    $('spInfo').textContent = MODE === 'spotify' ? 'Spotify redirect address used by this page: ' + REDIRECT : '';
     paintConnect();
     $('offVal').textContent = (S.offset > 0 ? '+' : '') + S.offset.toFixed(1) + 's';
     $('placeHint').textContent = S.place ? `Showing weather for ${S.place.name}.` : 'Type a city to show the temperature under the clock.';
@@ -455,11 +458,13 @@
       .finally(() => { refreshing = null; });
     return refreshing;
   }
-  async function spApi(method, path, retried) {
+  async function spApi(method, path, retried, body) {
     const token = await spAccess(retried);
     if (!token) return null;
-    const r = await fetch('https://api.spotify.com/v1' + path, { method, headers: { Authorization: 'Bearer ' + token } });
-    if (r.status === 401 && !retried) return spApi(method, path, true);
+    const headers = { Authorization: 'Bearer ' + token };
+    if (body) headers['Content-Type'] = 'application/json';
+    const r = await fetch('https://api.spotify.com/v1' + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    if (r.status === 401 && !retried) return spApi(method, path, true, body);
     return r;
   }
 
@@ -592,6 +597,86 @@
     }
     if (state.key === key) applyLyrics({ key, kind: res.kind, lines: res.lines });
   }
+
+  // ───────────── search & play (Spotify mode) ─────────────
+  const searchBox = $('search'), searchInput = $('searchInput'), results = $('results');
+  let searchTimer = 0, searchSeq = 0;
+  const searchMsg = (t) => { $('searchMsg').textContent = t || ''; };
+  function closeSearch() { searchBox.classList.remove('open'); searchInput.blur(); }
+  $('searchBtn').addEventListener('click', () => {
+    searchBox.classList.toggle('open');
+    if (searchBox.classList.contains('open')) { searchMsg(''); searchInput.focus(); searchInput.select(); }
+  });
+  $('searchClose').addEventListener('click', closeSearch);
+
+  // Start playback; if Spotify has no active player, wake the first available device (the iPad's Spotify app).
+  async function spPlay(body) {
+    try {
+      let r = await spApi('PUT', '/me/player/play', false, body);
+      if (r && r.status === 404) {
+        const d = await spApi('GET', '/me/player/devices');
+        const list = (d && d.ok && (await d.json()).devices) || [];
+        const pick = list.find((x) => x.is_active) || list[0];
+        if (!pick) return 'Open the Spotify app on the iPad once, then try again.';
+        r = await spApi('PUT', '/me/player/play?device_id=' + encodeURIComponent(pick.id), false, body);
+      }
+      if (!r) return 'Spotify is not connected.';
+      if (!r.ok) return ((await r.json().catch(() => ({}))).error || {}).message || 'Spotify said no (' + r.status + ').';
+      clearTimeout(spTimer); spTimer = setTimeout(spPoll, 600);
+      return '';
+    } catch { return 'No connection to Spotify.'; }
+  }
+
+  function renderResults(tracks) {
+    results.textContent = '';
+    for (const t of tracks) {
+      const row = document.createElement('div'); row.className = 'res';
+      const img = document.createElement('img');
+      const imgs = (t.album && t.album.images) || [];
+      if (imgs.length) img.src = (imgs[imgs.length - 1] || imgs[0]).url;
+      const text = document.createElement('div'); text.className = 'res-text';
+      const name = document.createElement('div'); name.className = 'res-name'; name.textContent = t.name;
+      const by = document.createElement('div'); by.className = 'res-by'; by.textContent = (t.artists || []).map((a) => a.name).join(', ');
+      text.append(name, by);
+      const add = document.createElement('button'); add.className = 'res-add'; add.textContent = '+'; add.setAttribute('aria-label', 'Add to queue');
+      add.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const r = await spApi('POST', '/me/player/queue?uri=' + encodeURIComponent(t.uri)).catch(() => null);
+        searchMsg(r && r.ok ? `Queued “${t.name}”.` : 'Could not queue it. Start something playing first.');
+        if (r && r.ok) setTimeout(spQueue, 800);
+      });
+      row.addEventListener('click', async () => {
+        searchMsg('Starting…');
+        // play it inside its album so music carries on afterwards instead of stopping after one song
+        const err = await spPlay(t.album && t.album.uri ? { context_uri: t.album.uri, offset: { uri: t.uri } } : { uris: [t.uri] });
+        if (err) searchMsg(err); else closeSearch();
+      });
+      row.append(img, text, add);
+      results.appendChild(row);
+    }
+  }
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if (!q) { results.textContent = ''; return searchMsg(''); }
+    searchTimer = setTimeout(async () => {
+      const seq = ++searchSeq;
+      try {
+        const r = await spApi('GET', '/search?type=track&limit=8&q=' + encodeURIComponent(q));
+        if (seq !== searchSeq) return; // a newer search is already on its way
+        if (!r || !r.ok) return searchMsg('Search failed' + (r ? ' (' + r.status + ').' : '.'));
+        const items = ((await r.json()).tracks || {}).items || [];
+        renderResults(items.filter(Boolean));
+        searchMsg(items.length ? '' : 'Nothing found.');
+      } catch { searchMsg('No connection to Spotify.'); }
+    }, 350);
+  });
+  $('searchForm').addEventListener('submit', (e) => { e.preventDefault(); searchInput.blur(); });
+  $('djBtn').addEventListener('click', async () => {
+    searchMsg('Asking Spotify for the DJ…');
+    const err = await spPlay({ context_uri: 'spotify:playlist:37i9dQZF1EYkqdzj48dyYq' });
+    if (err) searchMsg('Spotify would not start the DJ from here (' + err + ') Start it in the Spotify app instead; Glance will still show it.'); else closeSearch();
+  });
 
   $('connect').addEventListener('click', spLogin);
   $('spLogout').addEventListener('click', () => { ls.del('glance.sp'); spNote = ''; applyState({ active: false }); paintSettings(); });

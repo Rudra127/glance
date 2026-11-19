@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="preload" href="fonts/Doto.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=3">
 <title>Glance</title>
 </head>
 <body>
@@ -75,6 +75,20 @@
 <div id="dim"></div>
 <div id="offline">Reconnecting to your Mac…</div>
 
+<button id="searchBtn" aria-label="Search songs" hidden>
+  <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+</button>
+
+<div id="search">
+  <form id="searchForm">
+    <input id="searchInput" class="field" type="search" placeholder="Search songs" autocomplete="off" autocorrect="off" enterkeyhint="search">
+    <button type="button" id="searchClose">Close</button>
+  </form>
+  <div id="results"></div>
+  <p class="hint" id="searchMsg"></p>
+  <button type="button" id="djBtn" class="plain-btn">Start Spotify DJ</button>
+</div>
+
 <button id="gear" aria-label="Settings">
   <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
 </button>
@@ -109,12 +123,13 @@
   <label>Screen</label>
   <p class="hint" id="wakeHint"></p>
   <p class="hint" id="installHint"></p>
+  <p class="hint" id="spInfo"></p>
   <button id="spLogout" class="plain-btn" hidden>Disconnect Spotify</button>
 </aside>
 
 <video id="awake" src="awake.mp4" loop playsinline webkit-playsinline preload="none"></video>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script src="config.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
