@@ -18,6 +18,10 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* iPadOS leaves a black strip at the bottom of Home Screen web apps (the page is laid out one status-bar
+   short). Growing the root by that amount and letting the backdrop overshoot fills the whole screen. */
+html { min-height: calc(100% + env(safe-area-inset-top)); }
+
 html, body {
   height: 100%;
   margin: 0;
@@ -38,7 +42,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ───────────── background ───────────── */
 
 #bg {
-  position: fixed; inset: 0; overflow: hidden;
+  position: fixed; inset: 0 0 -90px 0; overflow: hidden;
   background:
     radial-gradient(110% 90% at 12% 92%, color-mix(in srgb, var(--accent) 42%, #000) 0%, transparent 62%),
     radial-gradient(90% 80% at 92% 6%, color-mix(in srgb, var(--accent) 22%, #000) 0%, transparent 66%),
@@ -204,7 +208,7 @@ body.paused .elapsed { animation: blink 2s steps(1) infinite; }
 
 /* ───────────── overlays ───────────── */
 
-#dim { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 3s ease; }
+#dim { position: fixed; inset: 0 0 -90px 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 3s ease; }
 #dim.on { opacity: .5; }
 
 #offline {
