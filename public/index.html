@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glance">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preload" href="fonts/Doto.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<title>Glance</title>
+</head>
+<body>
+
+<div id="bg">
+  <div class="bgl" id="bgA"></div>
+  <div class="bgl" id="bgB"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+</div>
+
+<main id="app" class="idle">
+  <section class="left">
+    <div class="clockblock">
+      <div class="date" id="date"></div>
+      <div class="clock"><span id="hh">--</span><span class="colon">:</span><span id="mm">--</span><span class="ampm" id="ampm"></span></div>
+      <div class="status" id="status"></div>
+      <button id="connect" hidden>Connect Spotify</button>
+      <div class="hint" id="connectNote" hidden></div>
+    </div>
+
+    <div class="np">
+      <div class="np-head">
+        <img class="art" id="art" alt="">
+        <div class="meta">
+          <div class="src" id="src"></div>
+          <div class="title" id="title"></div>
+          <div class="artist" id="artist"></div>
+        </div>
+      </div>
+      <div class="time-row">
+        <span class="elapsed" id="elapsed">00:00</span>
+        <span class="total" id="total"></span>
+      </div>
+      <div class="bar" id="bar" role="slider" aria-label="Seek"></div>
+      <div class="controls">
+        <button class="ctl" data-cmd="prev" aria-label="Previous">
+          <svg viewBox="0 0 24 24"><path d="M7 6v12M19 6.5v11L10 12z"/></svg>
+        </button>
+        <button class="ctl main" data-cmd="toggle" aria-label="Play or pause">
+          <svg class="i-pause" viewBox="0 0 24 24"><path d="M8.5 5.5v13M15.5 5.5v13"/></svg>
+          <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+        </button>
+        <button class="ctl" data-cmd="next" aria-label="Next">
+          <svg viewBox="0 0 24 24"><path d="M17 6v12M5 6.5v11l9-5.5z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="lyr-tag" id="lyrTag"></div>
+    <div class="lyrics" id="lyrics"><div class="lyr-inner" id="lyrInner"></div></div>
+    <div class="bigart" id="bigart">
+      <img id="bigartImg" alt="">
+      <div class="bigart-note" id="bigartNote"></div>
+    </div>
+  </section>
+</main>
+
+<div id="dim"></div>
+<div id="offline">Reconnecting to your Mac…</div>
+
+<button id="gear" aria-label="Settings">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
+</button>
+
+<aside id="sheet" aria-hidden="true">
+  <header><h2>Display</h2><button id="sheetClose" aria-label="Close">Done</button></header>
+
+  <div id="sourceBlock" hidden>
+    <label>Music source</label>
+    <div class="seg" data-key="source"><button data-val="mac">This Mac</button><button data-val="spotify">Spotify</button></div>
+  </div>
+
+  <label>Clock</label>
+  <div class="seg" data-key="h24"><button data-val="true">24-hour</button><button data-val="false">12-hour</button></div>
+
+  <label>Background</label>
+  <div class="seg" data-key="bg"><button data-val="art">Album art</button><button data-val="photos">Photos</button><button data-val="black">Black</button></div>
+  <p class="hint" id="photoHint"></p>
+
+  <label>Dimming</label>
+  <div class="seg" data-key="dim"><button data-val="off">Off</button><button data-val="auto">At night</button><button data-val="on">Always</button></div>
+
+  <label>Lyrics timing</label>
+  <div class="stepper"><button id="offMinus" aria-label="Lyrics later">−</button><span id="offVal">0.0s</span><button id="offPlus" aria-label="Lyrics earlier">+</button></div>
+  <p class="hint">Plus shows lines earlier, minus later.</p>
+
+  <label>Weather</label>
+  <form id="placeForm"><input id="placeInput" type="text" placeholder="City" autocomplete="off" autocapitalize="words"><button>Set</button></form>
+  <div class="seg" data-key="unit"><button data-val="C">°C</button><button data-val="F">°F</button></div>
+  <p class="hint" id="placeHint"></p>
+
+  <label>Screen</label>
+  <p class="hint" id="wakeHint"></p>
+  <p class="hint" id="installHint"></p>
+  <button id="spLogout" class="plain-btn" hidden>Disconnect Spotify</button>
+</aside>
+
+<video id="awake" src="awake.mp4" loop playsinline webkit-playsinline preload="none"></video>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

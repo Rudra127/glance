@@ -1,0 +1,8 @@
+{
+  "name": "glance-display",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Always-on iPad display: clock, now playing and synced lyrics from your Mac",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
